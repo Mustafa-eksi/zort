@@ -1,3 +1,6 @@
 [submodule "libbcrypt"]
 	path = libbcrypt
 	url = https://github.com/rg3/libbcrypt
+[submodule "meow_hash"]
+	path = meow_hash
+	url = https://github.com/cmuratori/meow_hash

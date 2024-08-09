@@ -2,7 +2,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef USE_BCRYPT
 #include "libbcrypt/bcrypt.h"
+#endif
+#ifdef USE_MEOW_HASH
+#include "meow_hash/meow_hash_x64_aesni.h"
+#define BCRYPT_HASHSIZE 16
+#endif
 
 const int WORKFORCE = 1;
 
@@ -31,6 +38,7 @@ int main(int argc, char** argv) {
     FILE* file = fopen(filepath, "r");
     if (file == NULL) {return -1;}
     
+#ifdef USE_BCRYPT
     if (!reverse) {
         if (bcrypt_gensalt(WORKFORCE, salt) != 0) {
             printf("Couldn't generate salt.\n");
@@ -51,6 +59,10 @@ int main(int argc, char** argv) {
         printf("Couldn't read the file: %s\n", filepath);
         ret = -1; goto closefile;
     }
+#endif
+#ifdef USE_MEOW_HASH
+    meow_u128 mhash = MeowHash(MeowDefaultSeed, strlen(password), password);
+#endif
 
     char* output_filename = (char*)malloc(strlen(filepath)*sizeof(char)+6);
     if (output_filename == NULL) {
@@ -64,13 +76,20 @@ int main(int argc, char** argv) {
 
     FILE* output_file = fopen(output_filename, "w+");
     
+#ifdef USE_BCRYPT
     if (!reverse) {
         // Write the salt
         fwrite(salt, sizeof(char), BCRYPT_HASHSIZE, output_file);
     }
+#endif
 
     while (fread(filebuf, sizeof(char), BCRYPT_HASHSIZE, file) == BCRYPT_HASHSIZE) {
+#ifdef USE_BCRYPT
         zor(zortbuf, filebuf, hash);
+#endif
+#ifdef USE_MEOW_HASH
+        zor(zortbuf, filebuf, (char*)&mhash);
+#endif
         if (fwrite(zortbuf, sizeof(char), BCRYPT_HASHSIZE, output_file) != BCRYPT_HASHSIZE) {
             printf("Didn't write fully\n");
         }
